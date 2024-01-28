@@ -57,7 +57,46 @@ const updateMany = {
   },
 };
 
-const docsDel = { balance: { $lte: 123456 } };
+const docsDel = {
+  balance: {
+    $lte: 123456,
+  },
+};
+
+const pipeline = [
+  {
+    $match: {
+      balance: {
+        $gt: 1000,
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$account_type",
+      total_balance: {
+        $sum: "$balance",
+      },
+      avg_balance: {
+        $avg: "$balance",
+      },
+    },
+  },
+];
+
+const pipeline2 = [
+  { $match: { account_type: "checking", balance: { $gte: 100 } } },
+  { $sort: { balance: -1 } },
+  {
+    $project: {
+      _id: 0,
+      account_id: 1,
+      account_type: 1,
+      balance: 1,
+      gcp_balance: { $divide: ["$balance", 1.3] },
+    },
+  },
+];
 
 const main = async () => {
   try {
@@ -89,6 +128,16 @@ const main = async () => {
 
     res = await accountsCollection.deleteMany(docsDel);
     console.log("Deleted docs:", res.deletedCount);
+
+    res = accountsCollection.aggregate(pipeline);
+    for await (const doc of res) {
+      console.log("Pipeline:", doc);
+    }
+
+    res = accountsCollection.aggregate(pipeline2);
+    for await (const doc of res) {
+      console.log("Pipeline:", doc);
+    }
   } catch (error) {
     console.log("Main error:", error);
   } finally {
