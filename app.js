@@ -1,4 +1,4 @@
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 
 const URI = "mongodb://localhost:27017";
 const client = new MongoClient(URI);
@@ -43,6 +43,22 @@ const sampleAccounts = [
 
 const accountFilter = { balance: { $gt: 4700 } };
 
+const docUpdate = { _id: new ObjectId("65b657dcd030fe156496eb8a") };
+const update = {
+  $inc: {
+    balance: 100,
+  },
+};
+
+const docsUpdate = { account_type: "checking" };
+const updateMany = {
+  $push: {
+    transfers_completed: "ok",
+  },
+};
+
+const docsDel = { balance: { $lte: 123456 } };
+
 const main = async () => {
   try {
     await connectDB();
@@ -55,8 +71,24 @@ const main = async () => {
     res = await accountsCollection.findOne(accountFilter);
     console.log("Document found:", res);
 
-    res = await accountsCollection.find(accountFilter);
-    console.log("Documents found:", res.count);
+    // res = await accountsCollection.find(accountFilter);
+    // console.log("Documents found:", res);
+
+    res = await accountsCollection.updateOne(docUpdate, update);
+    res.modifiedCount === 1
+      ? console.log("Document updated")
+      : console.log("Error updating document");
+
+    res = await accountsCollection.updateMany(docsUpdate, updateMany);
+    res.modifiedCount > 0
+      ? console.log("Documents updated")
+      : console.log("Error updating documents");
+
+    res = await accountsCollection.deleteOne(docsDel);
+    console.log("Deleted docs:", res.deletedCount);
+
+    res = await accountsCollection.deleteMany(docsDel);
+    console.log("Deleted docs:", res.deletedCount);
   } catch (error) {
     console.log("Main error:", error);
   } finally {
